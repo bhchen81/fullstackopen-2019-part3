@@ -16,7 +16,7 @@ const logger = (request, response, next) => {
 app.use(bodyParser.json());
 app.use(logger);
 
-const persons = [
+let persons = [
   {
     name: "Arto Hellas",
     number: "040-123456",
@@ -55,6 +55,12 @@ app.get("/api/persons/:id", (request, response) => {
   const person = persons.find(person => person.id === requestId);
   if (person) response.json(person);
   else response.status(404).end();
+});
+
+app.delete("/api/persons/:id", (request, response) => {
+  const requestId = Number(request.params.id);
+  persons = persons.filter(person => person.id !== requestId);
+  response.status(204).end();
 });
 
 const PORT = 3001;
