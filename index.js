@@ -1,5 +1,20 @@
 const express = require("express");
 const app = express();
+const bodyParser = require("body-parser");
+
+const logger = (request, response, next) => {
+  console.log(`Time: ${new Date().toString()}`);
+  console.log(`Method: ${request.method}`);
+  console.log(`Path: ${request.path}`);
+  console.log(`Body: ${request.body}`);
+  console.log(
+    "--------------------------------------------------------------------------------"
+  );
+  next();
+};
+
+app.use(bodyParser.json());
+app.use(logger);
 
 const persons = [
   {
@@ -30,7 +45,9 @@ app.get("/api/persons", (request, response) => {
 
 app.get("/info", (request, response) => {
   const time = new Date().toString();
-  response.send(`<p>Phonebook has info for ${persons.length} people<br>${time}</p>`);
+  response.send(
+    `<p>Phonebook has info for ${persons.length} people<br>${time}</p>`
+  );
 });
 
 const PORT = 3001;
