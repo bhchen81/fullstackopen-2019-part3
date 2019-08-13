@@ -3,10 +3,10 @@ const app = express();
 const bodyParser = require("body-parser");
 
 const logger = (request, response, next) => {
-  console.log(`Time: ${new Date().toString()}`);
-  console.log(`Method: ${request.method}`);
-  console.log(`Path: ${request.path}`);
-  console.log(`Body: ${request.body}`);
+  console.log("Time:", new Date().toString());
+  console.log("Method:", request.method);
+  console.log("Path:", request.path);
+  console.log("Body:", request.body);
   console.log(
     "--------------------------------------------------------------------------------"
   );
@@ -48,6 +48,13 @@ app.get("/info", (request, response) => {
   response.send(
     `<p>Phonebook has info for ${persons.length} people<br>${time}</p>`
   );
+});
+
+app.get("/api/persons/:id", (request, response) => {
+  const requestId = Number(request.params.id);
+  const person = persons.find(person => person.id === requestId);
+  if (person) response.json(person);
+  else response.status(404).end();
 });
 
 const PORT = 3001;
