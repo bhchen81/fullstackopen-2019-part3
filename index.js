@@ -1,20 +1,10 @@
 const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
-
-const logger = (request, response, next) => {
-  console.log("Time:", new Date().toString());
-  console.log("Method:", request.method);
-  console.log("Path:", request.path);
-  console.log("Body:", request.body);
-  console.log(
-    "--------------------------------------------------------------------------------"
-  );
-  next();
-};
+const morgan = require("morgan");
 
 app.use(bodyParser.json());
-app.use(logger);
+app.use(morgan("tiny"));
 
 let persons = [
   {
