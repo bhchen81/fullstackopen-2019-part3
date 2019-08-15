@@ -3,67 +3,55 @@ const app = express();
 const bodyParser = require("body-parser");
 const morgan = require("morgan");
 
+// Detects if the program is running under Heroku environment
+if (process.env.NODE_ENV !== "production") require("dotenv").config();
+const Person = require("./models/person");
+
 app.use(express.static("build"));
 app.use(bodyParser.json());
 
-morgan.token("body", req => {
-  return JSON.stringify(req.body);
-});
+morgan.token("body", req => JSON.stringify(req.body));
 
 app.use(
   morgan(":method :url :status :res[content-length] - :response-time ms :body")
 );
 
-let persons = [
-  {
-    name: "Arto Hellas",
-    number: "040-123456",
-    id: 1
-  },
-  {
-    name: "Ada Lovelace",
-    number: "39-44-5323523",
-    id: 2
-  },
-  {
-    name: "Dan Abramov",
-    number: "12-43-234345",
-    id: 3
-  },
-  {
-    name: "Mary Poppendieck",
-    number: "39-23-6423122",
-    id: 4
-  }
-];
-
-app.get("/api/persons", (request, response) => {
-  response.json(persons);
+app.get("/api/persons", (request, response, next) => {
+  Person.find({})
+    .then(result => {
+      response.json(result);
+    })
+    .catch(error => next(error));
 });
 
-app.get("/info", (request, response) => {
+app.get("/info", (request, response, next) => {
   const time = new Date().toString();
-  response.send(
-    `<p>Phonebook has info for ${persons.length} people<br>${time}</p>`
-  );
+  Person.countDocuments()
+    .then(number =>
+      response.send(`<p>Phonebook has info for ${number} people<br>${time}</p>`)
+    )
+    .catch(error => next(error));
 });
 
-app.get("/api/persons/:id", (request, response) => {
-  const requestId = Number(request.params.id);
-  const person = persons.find(person => person.id === requestId);
-  if (person) response.json(person);
-  else response.status(404).end();
+app.get("/api/persons/:id", (request, response, next) => {
+  Person.findById(request.params.id)
+    .then(person => {
+      if (person) response.json(person);
+      else response.status(404).end(); // Handle querying non-existed document
+    })
+    // Possible errors: CastError(the query ID doesn't fit in mongoDB format)
+    .catch(error => next(error));
 });
 
-app.delete("/api/persons/:id", (request, response) => {
-  const requestId = Number(request.params.id);
-  persons = persons.filter(person => person.id !== requestId);
-  response.status(204).end();
+app.delete("/api/persons/:id", (request, response, next) => {
+  Person.findByIdAndRemove(request.params.id)
+    .then(result => {
+      response.status(204).end();
+    })
+    .catch(error => next(error));
 });
 
-const generateId = () => Math.floor(Math.random() * 1000000) + 1;
-
-app.post("/api/persons", (request, response) => {
+app.post("/api/persons", (request, response, next) => {
   const body = request.body;
   if (!body.name) {
     return response.status(400).json({ error: "name missing" });
@@ -71,18 +59,46 @@ app.post("/api/persons", (request, response) => {
   if (!body.number) {
     return response.status(400).json({ error: "number missing" });
   }
-  if (persons.find(person => person.name === body.name)) {
-    return response.status(400).json({ error: "name must be unique" });
-  }
 
-  const newPerson = {
+  const newPerson = new Person({
     name: body.name,
-    number: body.number,
-    id: generateId()
-  };
-  persons = persons.concat(newPerson);
-  response.json(newPerson);
+    number: body.number
+  });
+
+  newPerson
+    .save()
+    .then(savedPerson => {
+      response.json(savedPerson);
+    })
+    .catch(error => next(error)); // Possible errors: ValidationError
 });
+
+app.put("/api/persons/:id", (request, response, next) => {
+  const body = request.body;
+
+  // Receive a regular JavaScript object as its parameter
+  const person = {
+    name: body.name,
+    number: body.number
+  };
+
+  Person.findByIdAndUpdate(request.params.id, person, { new: true })
+    .then(updatedPerson => {
+      response.json(updatedPerson);
+    })
+    .catch(error => next(error));
+});
+
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message);
+  if (error.name === "CastError" && error.kind === "ObjectId") {
+    return response.status(400).json({ error: "malformed id" });
+  } else if (error.name === "ValidationError") {
+    return response.status(400).json({ error: error.message });
+  }
+  next(error);
+};
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

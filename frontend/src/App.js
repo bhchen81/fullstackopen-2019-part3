@@ -47,14 +47,22 @@ const App = () => {
       person => person.name.toLowerCase() === newName.toLocaleLowerCase()
     );
     if (!foundPerson) {
-      personsService.create(newPerson).then(returnedPersons => {
-        setPersons(persons.concat(returnedPersons));
-        clearPersonForm();
-        showNotificationMessage({
-          type: "success",
-          content: `Added ${newName}`
-        });
-      });
+      personsService
+        .create(newPerson)
+        .then(returnedPersons => {
+          setPersons(persons.concat(returnedPersons));
+          clearPersonForm();
+          showNotificationMessage({
+            type: "success",
+            content: `Added ${newName}`
+          });
+        })
+        .catch(error =>
+          showNotificationMessage({
+            type: "error",
+            content: error.response.data.error
+          })
+        );
     } else if (
       window.confirm(
         `${newName} is already added to phonebook, replace old number with a new one?`

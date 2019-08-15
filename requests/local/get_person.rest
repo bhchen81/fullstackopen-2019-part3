@@ -1,0 +1,8 @@
+### Get existed person
+GET http://localhost:3001/api/persons/5d54fe8fe519082be451f908
+
+### Get non-existed person (valid ID format)
+GET http://localhost:3001/api/persons/5d55232e88ef1639ce218413
+
+### Get non-existed person (invalid ID format)
+GET http://localhost:3001/api/persons/1234
